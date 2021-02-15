@@ -14,26 +14,31 @@ class Scraper:
     def parse_table(self):
         captions = self.soup.find_all("table")
         
-        if len(captions) < 2:
+        if len(captions) < 1:
             # TODO: Error handling
             pass
         
-        table2 = captions[1].find("tbody")
-        if not table2:
+        table1 = captions[0].find("tbody")
+        if not table1:
             # TODO: Error handling
             pass
 
         result = []
-        for row in table2.find_all("tr"):            
+        for row in table1.find_all("tr"):            
             data = row.find_all("td")
-            if len(data) != 5:
+            if len(data) != 2:
                 continue
 
             result.append({
-                "date": data[0].text,
-                "total_1_dose": int(data[1].text.replace(" ", "")),
-                "total_1_dose_percent": float(data[2].text.replace(",", ".")), 
-                "total_2_dose": int(data[3].text.replace(" ", "")), 
-                "total_2_dose_percent": float(data[4].text.replace(",", "."))
+                "date": data[0].text.strip(),
+                "vaccinated": int(data[1].text.replace(" ", ""))
+                # "total_1_dose_percent": float(data[2].text.replace(",", ".")), 
+                # "total_2_dose": int(data[3].text.replace(" ", "")), 
+                # "total_2_dose_percent": float(data[4].text.replace(",", "."))
             })
         return result
+
+if __name__ == "__main__":
+    scraper = Scraper()
+    scraper.perform_request()
+    print(scraper.parse_table())

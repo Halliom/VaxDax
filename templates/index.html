@@ -32,16 +32,55 @@
 </head>
 
 <body>
+    <header class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-body border-bottom shadow-sm">
+        <p class="h5 my-0 me-md-auto fw-normal mr-4">Covid-vaccin projektion</p>
+        <!-- <nav class="my-2 my-md-0 me-md-3">
+            <a class="p-2 text-dark" href="#">Features</a>
+            <a class="p-2 text-dark" href="#">Enterprise</a>
+            <a class="p-2 text-dark" href="#">Support</a>
+            <a class="p-2 text-dark" href="#">Pricing</a>
+        </nav> -->
+        <a class="btn btn-outline-primary" href="https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/vaccination-mot-covid-19/statistik/statistik-over-registrerade-vaccinationer-covid-19/">Källa</a>
+    </header>
 
-    <div id="viz"></div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-4">
+                <div class="card" style="width: 18rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Genomsnittliga vaccinationer</h5>
+                        <p class="card-text">Från <b id="startDateAvg"></b> till <b id="endDateAvg"></b> vaccinerades i genomsnitt <b id="avg"></b> personer per dag.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-4">
+                <div class="card" style="width: 18rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Midsommar</h5>
+                        <p class="card-text">Det är <b id="daysToMidsummer"></b> dagar till midsommar. För att <b id="numPeopleNeedToBeVaccinated"></b> personer ska vara vaccinerade tills dess behövs att <b id="avgNecessaryIncrease"></b> vaccineras varje dag.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-4"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 col-lg-8">
+                <div id="viz"></div>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         let data = {{ data|safe }};
         
         // set the dimensions and margins of the graph
         var margin = { top: 50, right: 50, bottom: 50, left: 100 },
-            width = 1000 - margin.left - margin.right,
-            height = 500 - margin.top - margin.bottom;
+            width = $("#viz").width() - margin.left - margin.right,
+            height = Math.max($("#viz").height(), 400) - margin.top - margin.bottom;
 
         // append the svg object to the body of the page
         var svg = d3.select("#viz")
@@ -52,10 +91,41 @@
                 .attr("transform",
                     "translate(" + margin.left + "," + margin.top + ")");
 
-        // Add X axis --> it is a date format
         const timeParser = d3.timeParse("%Y-%m-%d");
+        data.forEach((d) => {
+            d.dateObj = timeParser(d.date);
+        });
+
+        const dataTimeExtent = d3.extent(data, function(d) { return d.dateObj; });
+
+        const startDate = dataTimeExtent[0];
+        const endDate = dataTimeExtent[1];
+        const startValues = data.find((value) => {
+            return startDate === value.dateObj;
+        });
+        const endValues = data.find((value) => {
+            return endDate === value.dateObj;
+        });
+        const differenceInValue = endValues.vaccinated - startValues.vaccinated;
+        const differenceInDays = (endValues.dateObj - startValues.dateObj) / (1000 * 60 * 60 * 24);
+        const averageIncrease = differenceInValue / differenceInDays;
+        
+        $("#startDateAvg").html(startValues.date);
+        $("#endDateAvg").html(endValues.date);
+        $("#avg").html(averageIncrease);
+
+        const midsummer = timeParser("2021-06-25");
+        const daysToMidsummer = Math.floor((midsummer - Date.now()) / (1000 * 60 * 60 * 24));
+        const numPeopleNeedToBeVaccinated = 8212885;//Math.ceil(endValues.total_1_dose / (endValues.total_1_dose_percent / 100));
+        const avgNecessaryIncrease = Math.ceil((numPeopleNeedToBeVaccinated - endValues.vaccinated) / daysToMidsummer);
+
+        $("#daysToMidsummer").html(daysToMidsummer);
+        $("#numPeopleNeedToBeVaccinated").html(numPeopleNeedToBeVaccinated);
+        $("#avgNecessaryIncrease").html(avgNecessaryIncrease);
+        
+        // Add X axis --> it is a date format
         var x = d3.scaleTime()
-            .domain(d3.extent(data, function(d) { return timeParser(d.date); }))
+            .domain(dataTimeExtent)
             .range([ 0, width ]);
         
         svg.append("g")
@@ -64,7 +134,7 @@
 
         // Add Y axis
         var y = d3.scaleLinear()
-            .domain([0, d3.max(data, function(d) { return +d.total_1_dose; })])
+            .domain([0, d3.max(data, function(d) { return +d.vaccinated; })])
             .range([ height, 0 ]);
         svg.append("g")
             .call(d3.axisLeft(y));
@@ -73,8 +143,9 @@
             .data(data)
             .enter().append("circle")
             .attr("r", 3.5)
-            .attr("cx", function(d) { return x(timeParser(d.date)); })
-            .attr("cy", function(d) { return y(d.total_1_dose); });
+            .attr("cx", function(d) { return x(d.dateObj); })
+            .attr("cy", function(d) { return y(d.vaccinated); })
+            .attr("fill", function(d) { return "black"; });
 
         // Add the line
         svg.append("path")
@@ -83,8 +154,8 @@
             .attr("stroke", "steelblue")
             .attr("stroke-width", 1.5)
             .attr("d", d3.line()
-                .x(function(d) { return x(timeParser(d.date)) })
-                .y(function(d) { return y(d.total_1_dose) })
+                .x(function(d) { return x(d.dateObj) })
+                .y(function(d) { return y(d.vaccinated) })
             );
     </script>
 </body>
