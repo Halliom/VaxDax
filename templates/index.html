@@ -43,10 +43,10 @@
         <a class="btn btn-outline-primary" href="https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/vaccination-mot-covid-19/statistik/statistik-over-registrerade-vaccinationer-covid-19/">Källa</a>
     </header>
 
-    <div class="container-fluid">
+    <div class="container-fluid" id="body">
         <div class="row">
             <div class="col-4">
-                <div class="card" style="width: 18rem;">
+                <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Genomsnittliga vaccinationer</h5>
                         <p class="card-text">Från <b id="startDateAvg"></b> till <b id="endDateAvg"></b> vaccinerades i genomsnitt <b id="avg"></b> personer per dag.</p>
@@ -55,7 +55,7 @@
             </div>
             
             <div class="col-4">
-                <div class="card" style="width: 18rem;">
+                <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Midsommar</h5>
                         <p class="card-text">Det är <b id="daysToMidsummer"></b> dagar till midsommar. För att <b id="numPeopleNeedToBeVaccinated"></b> personer ska vara vaccinerade tills dess behövs att <b id="avgNecessaryIncrease"></b> personer vaccineras varje dag.</p>
@@ -63,7 +63,14 @@
                 </div>
             </div>
             
-            <div class="col-4"></div>
+            <div class="col-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Diagramvy</h5>
+                        <button class="btn btn btn-outline-primary" onclick="">Projicera</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row">
@@ -75,87 +82,129 @@
 
 
     <script>
-        let data = {{ data|safe }};
-        
-        // set the dimensions and margins of the graph
-        var margin = { top: 50, right: 50, bottom: 50, left: 100 },
-            width = $("#viz").width() - margin.left - margin.right,
-            height = Math.max($("#viz").height(), 400) - margin.top - margin.bottom;
 
-        // append the svg object to the body of the page
-        var svg = d3.select("#viz")
-            .append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-                .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
 
-        const timeParser = d3.timeParse("%Y-%m-%d");
-        data.forEach((d) => {
-            d.dateObj = timeParser(d.date);
+        let app = new Vue({
+            delimiters: ["[[", "]]"],
+            el: "#body",
+            data: {
+                // The object containing all data points
+                data: null,
+                
+                // Utility method for parsing dates
+                timeParser: null,
+
+            },
+            mounted: function() {
+                this.data = {{ data|safe }};
+                this.timeParser = d3.timeParse("%Y-%m-%d");
+
+                this.setupSVG();
+
+                this.processDates();
+
+                this.createVisualisation();
+            },
+            methods: {
+                setupSVG: function() {
+                    // set the dimensions and margins of the graph
+                    var margin = { top: 50, right: 50, bottom: 50, left: 100 };
+                    this.width = $("#viz").width() - margin.left - margin.right,
+                    this.height = Math.max($("#viz").height(), 400) - margin.top - margin.bottom;
+
+                    // append the svg object to the body of the page
+                    this.svg = d3.select("#viz")
+                        .append("svg")
+                        .attr("width", this.width + margin.left + margin.right)
+                        .attr("height", this.height + margin.top + margin.bottom)
+                            .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                },
+                processDates: function() {
+                    this.data.forEach((d) => {
+                        d.dateObj = this.timeParser(d.date);
+                    });
+
+                    this.dataTimeExtent = d3.extent(this.data, function(d) { return d.dateObj; });
+
+                    this.startDate = this.dataTimeExtent[0];
+                    this.endDate = this.dataTimeExtent[1];
+                    this.startValues = this.data.find((value) => {
+                        return this.startDate === value.dateObj;
+                    });
+                    this.endValues = this.data.find((value) => {
+                        return this.endDate === value.dateObj;
+                    });
+                    const differenceInValue = this.endValues.vaccinated - this.startValues.vaccinated;
+                    const differenceInDays = (this.endValues.dateObj - this.startValues.dateObj) / (1000 * 60 * 60 * 24);
+                    this.averageIncrease = differenceInValue / differenceInDays;
+                    
+                    $("#startDateAvg").html(this.startValues.date);
+                    $("#endDateAvg").html(this.endValues.date);
+                    $("#avg").html(this.averageIncrease);
+
+                    this.midsummer = this.timeParser("2021-06-25");
+                    const daysToMidsummer = Math.floor((this.midsummer - Date.now()) / (1000 * 60 * 60 * 24));
+                    this.numPeopleNeedToBeVaccinated = 8212885;//Math.ceil(endValues.total_1_dose / (endValues.total_1_dose_percent / 100));
+                    this.avgNecessaryIncrease = Math.ceil((this.numPeopleNeedToBeVaccinated - this.endValues.vaccinated) / daysToMidsummer);
+
+                    $("#daysToMidsummer").html(daysToMidsummer);
+                    $("#numPeopleNeedToBeVaccinated").html(this.numPeopleNeedToBeVaccinated);
+                    $("#avgNecessaryIncrease").html(this.avgNecessaryIncrease);
+                },
+                createVisualisation: function() {
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleTime()
+                        .domain([this.dataTimeExtent[0], this.midsummer])
+                        .range([ 0, this.width ]);
+                    
+                    this.svg.append("g")
+                        .attr("transform", "translate(0," + this.height + ")")
+                        .call(d3.axisBottom(x));
+
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, this.numPeopleNeedToBeVaccinated])
+                        .range([ this.height, 0 ]);
+                    this.svg.append("g")
+                        .call(d3.axisLeft(y));
+
+                    this.svg.selectAll("dot")
+                        .data(this.data)
+                        .enter().append("circle")
+                        .attr("r", 3.5)
+                        .attr("cx", function(d) { return x(d.dateObj); })
+                        .attr("cy", function(d) { return y(d.vaccinated); })
+                        .attr("fill", function(d) { return "black"; });
+
+                    // Add the line
+                    this.svg.append("path")
+                        .datum(this.data)
+                        .attr("fill", "none")
+                        .attr("stroke", "steelblue")
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(function(d) { return x(d.dateObj) })
+                            .y(function(d) { return y(d.vaccinated) })
+                        );
+                    
+                    this.svg.append("path")
+                        .datum([ {
+                            "dateObj": this.endValues.dateObj,
+                            "vaccinated": this.endValues.vaccinated
+                        }, {
+                            "dateObj": this.midsummer,
+                            "vaccinated": this.numPeopleNeedToBeVaccinated
+                        } ])
+                        .attr("fill", "none")
+                        .attr("stroke", "red")
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(function(d) { return x(d.dateObj) })
+                            .y(function(d) { return y(d.vaccinated) })
+                        );
+                }
+            }
         });
-
-        const dataTimeExtent = d3.extent(data, function(d) { return d.dateObj; });
-
-        const startDate = dataTimeExtent[0];
-        const endDate = dataTimeExtent[1];
-        const startValues = data.find((value) => {
-            return startDate === value.dateObj;
-        });
-        const endValues = data.find((value) => {
-            return endDate === value.dateObj;
-        });
-        const differenceInValue = endValues.vaccinated - startValues.vaccinated;
-        const differenceInDays = (endValues.dateObj - startValues.dateObj) / (1000 * 60 * 60 * 24);
-        const averageIncrease = differenceInValue / differenceInDays;
-        
-        $("#startDateAvg").html(startValues.date);
-        $("#endDateAvg").html(endValues.date);
-        $("#avg").html(averageIncrease);
-
-        const midsummer = timeParser("2021-06-25");
-        const daysToMidsummer = Math.floor((midsummer - Date.now()) / (1000 * 60 * 60 * 24));
-        const numPeopleNeedToBeVaccinated = 8212885;//Math.ceil(endValues.total_1_dose / (endValues.total_1_dose_percent / 100));
-        const avgNecessaryIncrease = Math.ceil((numPeopleNeedToBeVaccinated - endValues.vaccinated) / daysToMidsummer);
-
-        $("#daysToMidsummer").html(daysToMidsummer);
-        $("#numPeopleNeedToBeVaccinated").html(numPeopleNeedToBeVaccinated);
-        $("#avgNecessaryIncrease").html(avgNecessaryIncrease);
-        
-        // Add X axis --> it is a date format
-        var x = d3.scaleTime()
-            .domain(dataTimeExtent)
-            .range([ 0, width ]);
-        
-        svg.append("g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x));
-
-        // Add Y axis
-        var y = d3.scaleLinear()
-            .domain([0, d3.max(data, function(d) { return +d.vaccinated; })])
-            .range([ height, 0 ]);
-        svg.append("g")
-            .call(d3.axisLeft(y));
-
-        svg.selectAll("dot")
-            .data(data)
-            .enter().append("circle")
-            .attr("r", 3.5)
-            .attr("cx", function(d) { return x(d.dateObj); })
-            .attr("cy", function(d) { return y(d.vaccinated); })
-            .attr("fill", function(d) { return "black"; });
-
-        // Add the line
-        svg.append("path")
-            .datum(data)
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5)
-            .attr("d", d3.line()
-                .x(function(d) { return x(d.dateObj) })
-                .y(function(d) { return y(d.vaccinated) })
-            );
-    </script>
+        </script>
 </body>
