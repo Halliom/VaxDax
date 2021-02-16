@@ -161,35 +161,45 @@
                 },
                 toggleProjection: function() {
                     this.projected = !this.projected;
+
+                    let x = this.updateXAxis(2000);
+                    let y = this.updateYAxis(2000);
+
+                    this.updateDataVis(2000, this.projected, x, y);
                 },
-                createVisualisation: function() {
-                    // Add X axis --> it is a date format
-                    var x = d3.scaleTime()
+                updateXAxis(animationTime) {
+                    let x = d3.scaleTime()
                         .domain([ this.dataTimeExtent[0], this.projected ? this.midsummer : this.dataTimeExtent[1] ])
                         .range([ 0, this.width ]);
-                    
-                    this.svg.append("g")
+
+                    this.xAxis
                         .attr("transform", "translate(0," + this.height + ")")
+                        .transition().duration(animationTime)
                         .call(d3.axisBottom(x));
 
-                    // Add Y axis
-                    var y = d3.scaleLinear()
+                    return x;
+                },
+                updateYAxis(animationTime) {
+                    let y = d3.scaleLinear()
                         .domain([ 0, this.projected ? this.numPeopleNeedToBeVaccinated : d3.max(this.data, function(d) { return +d.vaccinated; }) ])
                         .range([ this.height, 0 ]);
-                    this.svg.append("g")
+                    
+                    this.yAxis
+                        .transition().duration(animationTime)
                         .call(d3.axisLeft(y));
 
-                    this.svg.selectAll("dot")
-                        .data(this.data)
-                        .enter().append("circle")
-                        .attr("r", 3.5)
+                    return y;
+                },
+                updateDataVis(animationTime, projected, x, y) {
+                    this.points
+                        .transition().duration(animationTime)
+                        .attr("r", projected ? 1.5 : 3.5)
                         .attr("cx", function(d) { return x(d.dateObj); })
                         .attr("cy", function(d) { return y(d.vaccinated); })
                         .attr("fill", function(d) { return "black"; });
 
-                    // Add the line
-                    this.svg.append("path")
-                        .datum(this.data)
+                    this.line
+                        .transition().duration(animationTime)
                         .attr("fill", "none")
                         .attr("stroke", "steelblue")
                         .attr("stroke-width", 1.5)
@@ -197,22 +207,42 @@
                             .x(function(d) { return x(d.dateObj) })
                             .y(function(d) { return y(d.vaccinated) })
                         );
-                    
-                    // this.svg.append("path")
-                    //     .datum([ {
-                    //         "dateObj": this.endValues.dateObj,
-                    //         "vaccinated": this.endValues.vaccinated
-                    //     }, {
-                    //         "dateObj": this.midsummer,
-                    //         "vaccinated": this.numPeopleNeedToBeVaccinated
-                    //     } ])
-                    //     .attr("fill", "none")
-                    //     .attr("stroke", "red")
-                    //     .attr("stroke-width", 1.5)
-                    //     .attr("d", d3.line()
-                    //         .x(function(d) { return x(d.dateObj) })
-                    //         .y(function(d) { return y(d.vaccinated) })
-                    //     );
+
+                    this.projection
+                        .transition().duration(animationTime)
+                        .attr("fill", "none")
+                        .attr("stroke", "red")
+                        .attr("opacity", this.projected ? 1 : 0)
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(function(d) { return x(d.dateObj) })
+                            .y(function(d) { return y(d.vaccinated) })
+                        );
+                },
+                createVisualisation: function() {
+                    this.xAxis = this.svg.append("g");
+                    this.yAxis = this.svg.append("g");
+
+                    let x = this.updateXAxis(1000);
+                    let y = this.updateYAxis(1000);
+
+                    this.points = this.svg.selectAll("dot")
+                        .data(this.data)
+                        .enter().append("circle");
+
+                    this.line = this.svg.append("path")
+                        .datum(this.data)
+
+                    this.projection = this.svg.append("path")
+                        .datum([ {
+                            "dateObj": this.endValues.dateObj,
+                            "vaccinated": this.endValues.vaccinated
+                        }, {
+                            "dateObj": this.midsummer,
+                            "vaccinated": this.numPeopleNeedToBeVaccinated
+                        } ]);
+                        
+                    this.updateDataVis(1000, this.projected, x, y);
                 }
             }
         });
