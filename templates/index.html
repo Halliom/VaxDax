@@ -67,7 +67,12 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Diagramvy</h5>
-                        <button class="btn btn btn-outline-primary" onclick="">Projicera</button>
+                        <button 
+                            class="btn" 
+                            v-bind:class="{ 'btn-primary': projected, 'btn-outline-primary': !projected }" 
+                            v-on:click="toggleProjection">
+                            Projicera
+                        </button>
                     </div>
                 </div>
             </div>
@@ -94,6 +99,8 @@
                 // Utility method for parsing dates
                 timeParser: null,
 
+                // If the projection is enabled or not
+                projected: false
             },
             mounted: function() {
                 this.data = {{ data|safe }};
@@ -152,10 +159,13 @@
                     $("#numPeopleNeedToBeVaccinated").html(this.numPeopleNeedToBeVaccinated);
                     $("#avgNecessaryIncrease").html(this.avgNecessaryIncrease);
                 },
+                toggleProjection: function() {
+                    this.projected = !this.projected;
+                },
                 createVisualisation: function() {
                     // Add X axis --> it is a date format
                     var x = d3.scaleTime()
-                        .domain([this.dataTimeExtent[0], this.midsummer])
+                        .domain([ this.dataTimeExtent[0], this.projected ? this.midsummer : this.dataTimeExtent[1] ])
                         .range([ 0, this.width ]);
                     
                     this.svg.append("g")
@@ -164,7 +174,7 @@
 
                     // Add Y axis
                     var y = d3.scaleLinear()
-                        .domain([0, this.numPeopleNeedToBeVaccinated])
+                        .domain([ 0, this.projected ? this.numPeopleNeedToBeVaccinated : d3.max(this.data, function(d) { return +d.vaccinated; }) ])
                         .range([ this.height, 0 ]);
                     this.svg.append("g")
                         .call(d3.axisLeft(y));
@@ -188,21 +198,21 @@
                             .y(function(d) { return y(d.vaccinated) })
                         );
                     
-                    this.svg.append("path")
-                        .datum([ {
-                            "dateObj": this.endValues.dateObj,
-                            "vaccinated": this.endValues.vaccinated
-                        }, {
-                            "dateObj": this.midsummer,
-                            "vaccinated": this.numPeopleNeedToBeVaccinated
-                        } ])
-                        .attr("fill", "none")
-                        .attr("stroke", "red")
-                        .attr("stroke-width", 1.5)
-                        .attr("d", d3.line()
-                            .x(function(d) { return x(d.dateObj) })
-                            .y(function(d) { return y(d.vaccinated) })
-                        );
+                    // this.svg.append("path")
+                    //     .datum([ {
+                    //         "dateObj": this.endValues.dateObj,
+                    //         "vaccinated": this.endValues.vaccinated
+                    //     }, {
+                    //         "dateObj": this.midsummer,
+                    //         "vaccinated": this.numPeopleNeedToBeVaccinated
+                    //     } ])
+                    //     .attr("fill", "none")
+                    //     .attr("stroke", "red")
+                    //     .attr("stroke-width", 1.5)
+                    //     .attr("d", d3.line()
+                    //         .x(function(d) { return x(d.dateObj) })
+                    //         .y(function(d) { return y(d.vaccinated) })
+                    //     );
                 }
             }
         });
