@@ -28,6 +28,20 @@
             width: 100%;
             height: 100%;
         }
+
+        div.tooltip {
+            position: absolute;
+            padding: 0.5rem 0.75rem;
+
+            text-align: center;
+
+            background: #CCC;
+
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        } 
+
     </style>
 </head>
 
@@ -105,6 +119,12 @@
             mounted: function() {
                 this.data = {{ data|safe }};
                 this.timeParser = d3.timeParse("%Y-%m-%d");
+
+                this.tooltip = d3.select("body").append("div");
+
+                this.tooltip
+                    .attr("class", "tooltip")				
+                    .style("opacity", 0);
 
                 this.setupSVG();
 
@@ -229,6 +249,32 @@
                     this.points = this.svg.selectAll("dot")
                         .data(this.data)
                         .enter().append("circle");
+                    
+                    const tooltip = this.tooltip;
+                    const handleMouseOver = function(e, d) {
+                        d3.select(this)
+                            .transition().duration(200)
+                            .attr("r", this.projected ? 3.5 : 5.5);
+
+                        tooltip.transition()
+                            .duration(200)
+                            .style("opacity", .85);
+                        tooltip.html(d.date + " hade<br/>"  + d.vaccinated + " vaccinerats")
+                            .style("left", (e.pageX + 20) + "px")
+                            .style("top", (e.pageY - 28) + "px");
+                    };
+                    const handleMouseOut = function() {
+                        d3.select(this)
+                            .transition().duration(300)
+                            .attr("r", this.projected ? 1.5 : 3.5);
+                        tooltip.transition()
+                            .duration(300)
+                            .style("opacity", 0);
+                    };
+
+                    this.points
+                        .on("mouseover", handleMouseOver)
+                        .on("mouseout", handleMouseOut);
 
                     this.line = this.svg.append("path")
                         .datum(this.data)
