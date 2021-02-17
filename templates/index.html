@@ -40,7 +40,7 @@
             <a class="p-2 text-dark" href="#">Support</a>
             <a class="p-2 text-dark" href="#">Pricing</a>
         </nav> -->
-        <a class="btn btn-outline-primary" href="https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/vaccination-mot-covid-19/statistik/statistik-over-registrerade-vaccinationer-covid-19/">Källa</a>
+        <a class="btn btn-outline-primary" target="_blank" href="https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/vaccination-mot-covid-19/statistik/statistik-over-registrerade-vaccinationer-covid-19/">Källa</a>
     </header>
 
     <div class="container-fluid" id="body">
@@ -148,7 +148,7 @@
                     
                     $("#startDateAvg").html(this.startValues.date);
                     $("#endDateAvg").html(this.endValues.date);
-                    $("#avg").html(this.averageIncrease);
+                    $("#avg").html(Math.floor(this.averageIncrease));
 
                     this.midsummer = this.timeParser("2021-06-25");
                     const daysToMidsummer = Math.floor((this.midsummer - Date.now()) / (1000 * 60 * 60 * 24));
