@@ -53,7 +53,7 @@
 
     <div class="container" id="body">
         <div class="row">
-            <div class="col-4">
+            <div class="col-6 col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Genomsnittliga vaccinationer</h5>
@@ -62,16 +62,25 @@
                 </div>
             </div>
             
-            <div class="col-4">
+            <div class="col-6 col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Midsommar</h5>
-                        <p class="card-text">Det är <b id="daysToMidsummer"></b> dagar till midsommar. För att <b id="numPeopleNeedToBeVaccinated"></b> personer ska vara vaccinerade tills dess behövs att <b id="avgNecessaryIncrease"></b> personer vaccineras varje dag.</p>
+                        <p class="card-text">Det är <b id="daysToMidsummer"></b> dagar till midsommar. För att <b>[[ numPeopleNeedToBeVaccinated ]]</b> personer ska vara vaccinerade tills dess behövs att <b id="avgNecessaryIncrease"></b> personer vaccineras varje dag.</p>
                     </div>
                 </div>
             </div>
             
-            <div class="col-4">
+            <div class="col-6 col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Nuvarande trend</h5>
+                        <p class="card-text">I nuvarande takt kommer <b>[[ numPeopleNeedToBeVaccinated ]]</b> att vara vaccinerade vid <b>[[ predictedEndDate ]]</b>.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Diagramvy</h5>
@@ -121,7 +130,11 @@
                 timeParser: null,
 
                 // If the projection is enabled or not
-                projected: false
+                projected: false,
+
+                numPeopleNeedToBeVaccinated: 8212885,
+
+                predictedEndDate: null,
             },
             mounted: function() {
                 this.data = {{ data|safe }};
@@ -172,6 +185,9 @@
                     const differenceInValue = this.endValues.vaccinated - this.startValues.vaccinated;
                     const differenceInDays = (this.endValues.dateObj - this.startValues.dateObj) / (1000 * 60 * 60 * 24);
                     this.averageIncrease = differenceInValue / differenceInDays;
+                    const daysUntilPredictedEnd = Math.floor((this.numPeopleNeedToBeVaccinated - this.endValues.vaccinated) / this.averageIncrease);
+                    let predictedEnd = Date.parse(this.endValues.date) + daysUntilPredictedEnd * 1000 * 60 * 60 * 24
+                    this.predictedEndDate = d3.timeFormat("%Y-%m-%d")(predictedEnd);
                     
                     $("#startDateAvg").html(this.startValues.date);
                     $("#endDateAvg").html(this.endValues.date);
@@ -179,7 +195,6 @@
 
                     this.midsummer = this.timeParser("2021-06-25");
                     this.daysToMidsummer = Math.floor((this.midsummer - Date.now()) / (1000 * 60 * 60 * 24));
-                    this.numPeopleNeedToBeVaccinated = 8212885;//Math.ceil(endValues.total_1_dose / (endValues.total_1_dose_percent / 100));
                     this.avgNecessaryIncrease = Math.ceil((this.numPeopleNeedToBeVaccinated - this.endValues.vaccinated) / this.daysToMidsummer);
 
                     $("#daysToMidsummer").html(this.daysToMidsummer);
