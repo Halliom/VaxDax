@@ -178,11 +178,11 @@
                     $("#avg").html(Math.floor(this.averageIncrease));
 
                     this.midsummer = this.timeParser("2021-06-25");
-                    const daysToMidsummer = Math.floor((this.midsummer - Date.now()) / (1000 * 60 * 60 * 24));
+                    this.daysToMidsummer = Math.floor((this.midsummer - Date.now()) / (1000 * 60 * 60 * 24));
                     this.numPeopleNeedToBeVaccinated = 8212885;//Math.ceil(endValues.total_1_dose / (endValues.total_1_dose_percent / 100));
-                    this.avgNecessaryIncrease = Math.ceil((this.numPeopleNeedToBeVaccinated - this.endValues.vaccinated) / daysToMidsummer);
+                    this.avgNecessaryIncrease = Math.ceil((this.numPeopleNeedToBeVaccinated - this.endValues.vaccinated) / this.daysToMidsummer);
 
-                    $("#daysToMidsummer").html(daysToMidsummer);
+                    $("#daysToMidsummer").html(this.daysToMidsummer);
                     $("#numPeopleNeedToBeVaccinated").html(this.numPeopleNeedToBeVaccinated);
                     $("#avgNecessaryIncrease").html(this.avgNecessaryIncrease);
                 },
@@ -229,7 +229,7 @@
                         .transition().duration(animationTime)
                         .attr("fill", "none")
                         .attr("stroke", "steelblue")
-                        .attr("stroke-width", 1.5)
+                        .attr("stroke-width", 2.5)
                         .attr("d", d3.line()
                             .x(function(d) { return x(d.dateObj) })
                             .y(function(d) { return y(d.vaccinated) })
@@ -240,7 +240,18 @@
                         .attr("fill", "none")
                         .attr("stroke", "red")
                         .attr("opacity", this.projected ? 1 : 0)
-                        .attr("stroke-width", 1.5)
+                        .attr("stroke-width", 2.5)
+                        .attr("d", d3.line()
+                            .x(function(d) { return x(d.dateObj) })
+                            .y(function(d) { return y(d.vaccinated) })
+                        );
+
+                    this.projectionCurrent
+                        .transition().duration(animationTime)
+                        .attr("fill", "none")
+                        .attr("stroke", "blue")
+                        .attr("opacity", this.projected ? 1 : 0)
+                        .attr("stroke-width", 2.5)
                         .attr("d", d3.line()
                             .x(function(d) { return x(d.dateObj) })
                             .y(function(d) { return y(d.vaccinated) })
@@ -256,21 +267,17 @@
                     this.points = this.svg.selectAll("dot")
                         .data(this.data)
                         .enter().append("circle");
-                    
-                    const tooltip = this.tooltip;
-                    const handleMouseOver = function(e, d) {
-                        d3.select(this)
-                            .transition().duration(200)
-                            .attr("r", this.projected ? 3.5 : 5.5);
 
+                    const tooltip = this.tooltip;
+                    const displayTooltip = function(text, e) {
                         tooltip.transition()
                             .duration(200)
                             .style("opacity", .85);
-                        tooltip.html(d.date + " hade<br/>"  + d.vaccinated + " vaccinerats")
+                        tooltip.html(text)
                             .style("left", (e.pageX + 20) + "px")
                             .style("top", (e.pageY - 28) + "px");
                     };
-                    const handleMouseOut = function() {
+                    const hideTooltip = function() {
                         d3.select(this)
                             .transition().duration(300)
                             .attr("r", this.projected ? 1.5 : 3.5);
@@ -278,10 +285,16 @@
                             .duration(300)
                             .style("opacity", 0);
                     };
+                    const handleMouseOver = function(e, d) {
+                        d3.select(this)
+                            .transition().duration(200)
+                            .attr("r", this.projected ? 3.5 : 5.5);
+                        displayTooltip(d.date + " hade<br/>"  + d.vaccinated + " vaccinerats", e);
+                    };
 
                     this.points
                         .on("mouseover", handleMouseOver)
-                        .on("mouseout", handleMouseOut);
+                        .on("mouseout", hideTooltip);
 
                     this.line = this.svg.append("path")
                         .datum(this.data)
@@ -293,7 +306,23 @@
                         }, {
                             "dateObj": this.midsummer,
                             "vaccinated": this.numPeopleNeedToBeVaccinated
-                        } ]);
+                        } ])
+                        .on("mouseover", (e, d) => {
+                            displayTooltip("Uteckling som krävs för <br>att hinna till midsommar", e);
+                        })
+                        .on("mouseout", hideTooltip);
+                    this.projectionCurrent = this.svg.append("path")
+                        .datum([ {
+                            "dateObj": this.endValues.dateObj,
+                            "vaccinated": this.endValues.vaccinated
+                        }, {
+                            "dateObj": this.midsummer,
+                            "vaccinated": this.endValues.vaccinated + this.daysToMidsummer * this.averageIncrease
+                        } ])
+                        .on("mouseover", (e, d) => {
+                            displayTooltip("Nuvarande utveckling", e);
+                        })
+                        .on("mouseout", hideTooltip);
                         
                     this.updateDataVis(1000, this.projected, x, y);
                 }
