@@ -53,7 +53,7 @@
 
     <div class="container" id="body">
         <div class="row">
-            <div class="col-12 col-md-6 col-lg-3">
+            <div class="col-12 col-md-6 col-lg-4 mt-2 mt-md-0">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Genomsnittliga vaccinationer</h5>
@@ -62,7 +62,7 @@
                 </div>
             </div>
             
-            <div class="col-12 col-md-6 col-lg-3">
+            <div class="col-12 col-md-6 col-lg-4 mt-2 mt-md-0">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Midsommar</h5>
@@ -71,33 +71,27 @@
                 </div>
             </div>
             
-            <div class="col-12 col-md-6 col-lg-3">
+            <div class="col-12 col-md-12 col-lg-4 mt-2 mt-md-3 mt-lg-0 mb-2">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Nuvarande trend</h5>
                         <p class="card-text">I nuvarande takt kommer <b>[[ numPeopleNeedToBeVaccinated ]]</b> att vara vaccinerade vid <b>[[ predictedEndDate ]]</b>.</p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="col-12 col-md-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Diagramvy</h5>
-                        <button 
-                            class="btn" 
-                            v-bind:class="{ 'btn-primary': projected, 'btn-outline-primary': !projected }" 
-                            v-on:click="toggleProjection">
-                            Projicera
-                        </button>
-                    </div>
-                </div>
-            </div>
+            </div>            
         </div>
 
         <div class="row">
-            <div class="col-12 col-lg-9">
+            <div class="col-10 col-lg-9">
                 <div id="viz"></div>
+            </div>
+            <div class="col-2 col-lg-3">
+                <button 
+                    class="btn" 
+                    v-bind:class="{ 'btn-primary': projected, 'btn-outline-primary': !projected }" 
+                    v-on:click="toggleProjection">
+                    Projicera
+                </button>
             </div>
         </div>
 
