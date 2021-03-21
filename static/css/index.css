@@ -1,0 +1,17 @@
+#viz {
+    width: 100%;
+    height: 100%;
+}
+
+div.tooltip {
+    position: absolute;
+    padding: 0.5rem 0.75rem;
+
+    text-align: center;
+
+    background: #CCC;
+
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+} 
